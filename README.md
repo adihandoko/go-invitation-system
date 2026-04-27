@@ -1,434 +1,243 @@
 # Go Invitation System
 
-A high-performance digital invitation system built with Go, featuring Redis caching, PostgreSQL database, and Docker containerization.
+Go Invitation System adalah aplikasi undangan digital berbasis Go, React, PostgreSQL, dan Redis. Project ini berisi REST API untuk mengelola undangan, RSVP tamu, statistik kunjungan, upload gambar, halaman undangan publik, dan dashboard admin berbasis CoreUI.
 
-## Features
+## Fitur
 
-- ✅ Create and manage digital invitations
-- ✅ Guest RSVP system with status tracking (attending, not attending, maybe)
-- ✅ Visitor counter with automatic tracking
-- ✅ High-performance Redis caching (60s TTL)
-- ✅ Connection pooling for database
-- ✅ Goroutine-based async operations
-- ✅ Clean Architecture (handler → service → repository)
-- ✅ Docker & docker-compose setup
-- ✅ Comprehensive logging
+- CRUD invitation dengan slug unik
+- Halaman undangan publik di `/invite/:slug`
+- RSVP tamu dengan status `attending`, `maybe`, dan `not_attending`
+- Statistik RSVP dan jumlah visitor per invitation
+- Upload gambar invitation ke folder `uploads`
+- Redis cache untuk detail invitation
+- PostgreSQL sebagai database utama
+- Frontend publik React + Vite
+- Admin dashboard CoreUI
+- Docker Compose untuk menjalankan backend, database, cache, frontend, dan admin
 
 ## Tech Stack
 
-- **Framework**: Echo (High-performance web framework)
-- **Database**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Language**: Go 1.21
-- **Containerization**: Docker & docker-compose
+- Backend: Go 1.21, Echo
+- Database: PostgreSQL 15
+- Cache: Redis 7
+- Frontend: React 18, Vite
+- Admin: React 18, CoreUI
+- Container: Docker, Docker Compose
 
-## Project Structure
+## Struktur Project
 
-```
-go-invitation-system/
-├── config/                 # Configuration & database setup
-│   ├── config.go          # Configuration loader
-│   ├── database.go        # Database initialization
-│   └── redis.go           # Redis client setup
-├── domain/                # Domain models
-│   ├── invitation.go      # Invitation entities
-│   ├── rsvp.go            # RSVP entities
-│   └── visitor.go         # Visitor entities
-├── repository/            # Data layer
-│   ├── invitation_repository.go
-│   ├── rsvp_repository.go
-│   └── visitor_repository.go
-├── service/              # Business logic layer
-│   ├── invitation_service.go
-│   └── rsvp_service.go
-├── handler/              # HTTP layer
-│   ├── invitation_handler.go
-│   ├── rsvp_handler.go
-│   └── stats_handler.go
-├── db/
-│   └── init.sql          # Database migrations
-├── main.go               # Application entry point
-├── go.mod                # Go module definition
-├── Dockerfile            # Docker image definition
-├── docker-compose.yml    # Docker compose configuration
-├── .env.example          # Environment variables example
-└── README.md             # This file
+```text
+.
+|-- admin-coreui/       # Dashboard admin berbasis CoreUI
+|-- config/             # Konfigurasi aplikasi, database, dan Redis
+|-- db/                 # Script inisialisasi database
+|-- domain/             # Model dan DTO
+|-- frontend-react/     # Frontend publik React
+|-- handler/            # HTTP handler
+|-- repository/         # Akses data PostgreSQL
+|-- service/            # Business logic
+|-- templates/          # Template referensi CoreUI
+|-- uploads/            # File gambar yang di-upload
+|-- docker-compose.yml
+|-- Dockerfile
+|-- go.mod
+|-- main.go
+`-- README.md
 ```
 
-## Quick Start
+## Menjalankan dengan Docker Compose
 
-### Prerequisites
-
-- Docker & docker-compose installed
-- OR Go 1.21+, PostgreSQL 15, Redis 7 (if running locally)
-
-### Using Docker Compose (Recommended)
-
-1. **Clone the repository**
-
-```bash
-git clone <repository>
-cd go-invitation-system
-```
-
-2. **Create environment file**
+Pastikan Docker dan Docker Compose sudah terpasang.
 
 ```bash
 cp .env.example .env
+docker compose up -d --build
 ```
 
-3. **Start the application**
+Setelah semua service berjalan:
 
-```bash
-docker-compose up -d
-```
+- API: `http://localhost:8080`
+- Frontend publik: `http://localhost:3000`
+- Admin dashboard: `http://localhost:3001`
+- PostgreSQL: `localhost:5432`
+- Redis: `localhost:6379`
 
-The application will be available at `http://localhost:8080`
-
-4. **Verify it's running**
+Cek health endpoint:
 
 ```bash
 curl http://localhost:8080/health
 ```
 
-### Local Development Setup
+## Menjalankan Backend Secara Lokal
 
-1. **Install dependencies**
+Prasyarat:
 
-```bash
-go mod download
-```
+- Go 1.21+
+- PostgreSQL 15+
+- Redis 7+
 
-2. **Setup PostgreSQL**
-
-```bash
-createuser postgres (if not exists)
-createdb invitation_db
-psql -U postgres -d invitation_db -f db/init.sql
-```
-
-3. **Setup Redis**
-
-```bash
-# Using Docker
-docker run -d -p 6379:6379 redis:7-alpine
-
-# OR using Redis server directly
-redis-server
-```
-
-4. **Create .env file**
+Langkah:
 
 ```bash
 cp .env.example .env
-# Edit .env with your local settings
-```
-
-5. **Run the application**
-
-```bash
+go mod download
+psql -U postgres -d invitation_db -f db/init.sql
 go run main.go
 ```
 
-## API Endpoints
+Default API berjalan di `http://localhost:8080`.
 
-### Health Check
-- `GET /health` - Health check endpoint
+## Menjalankan Frontend
 
-### Invitations
-- `POST /invitations` - Create a new invitation
-- `GET /invitations` - Get all invitations
-- `GET /invite/{slug}` - Get invitation by slug (with visitor counter)
-- `PUT /invitations/{id}` - Update invitation
-- `DELETE /invitations/{id}` - Delete invitation
-
-### RSVP
-- `POST /rsvp` - Create/submit RSVP
-- `GET /rsvp/{id}` - Get RSVP details
-- `GET /rsvp/invitation/{id}` - Get all RSVPs for an invitation
-- `PUT /rsvp/{id}` - Update RSVP
-- `DELETE /rsvp/{id}` - Delete RSVP
-
-### Statistics
-- `GET /stats/{id}` - Get statistics for invitation (by ID)
-- `GET /stats/slug/{slug}` - Get statistics for invitation (by slug)
-
-## API Examples
-
-### Create Invitation
+Frontend publik:
 
 ```bash
-curl -X POST http://localhost:8080/invitations \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "Wedding Reception",
-    "slug": "john-jane-wedding",
-    "event_date": "2024-06-15T18:00:00Z"
-  }'
+cd frontend-react
+npm install
+npm run dev
 ```
 
-### Get Invitation by Slug
+Admin dashboard:
 
 ```bash
-curl http://localhost:8080/invite/john-jane-wedding
+cd admin-coreui
+npm install
+npm run dev
 ```
 
-### Submit RSVP
+Default Vite akan menampilkan URL development di terminal.
 
-```bash
-curl -X POST http://localhost:8080/rsvp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "invitation_id": 1,
-    "name": "John Doe",
-    "status": "attending"
-  }'
-```
+## Environment Variables
 
-### Get Statistics
+Contoh konfigurasi tersedia di `.env.example`.
 
-```bash
-curl http://localhost:8080/stats/1
-```
-
-## Database Schema
-
-### Invitations Table
-
-```sql
-CREATE TABLE invitations (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL UNIQUE,
-    event_date TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-);
-```
-
-### RSVPs Table
-
-```sql
-CREATE TABLE rsvps (
-    id SERIAL PRIMARY KEY,
-    invitation_id INTEGER NOT NULL REFERENCES invitations(id),
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-);
-```
-
-### Visitors Table
-
-```sql
-CREATE TABLE visitors (
-    id SERIAL PRIMARY KEY,
-    invitation_id INTEGER NOT NULL REFERENCES invitations(id),
-    created_at TIMESTAMP NOT NULL
-);
-```
-
-## Performance Features
-
-### Connection Pooling
-- Database connection pool with max 25 open connections and 5 idle connections
-- Optimized for concurrent requests
-
-### Caching Strategy
-- Redis caching with 60-second TTL
-- Automatic cache invalidation on data changes
-- Cache-aside pattern implementation
-
-### Async Operations
-- Goroutine-based visitor tracking
-- Non-blocking operations for background tasks
-
-### Database Indexing
-- Index on invitation slug for fast lookups
-- Index on invitation_id in rsvps and visitors tables
-
-## Configuration
-
-All configuration is managed through environment variables:
-
-```
-# Application
+```env
 APP_NAME=go-invitation-system
 APP_PORT=8080
 ENVIRONMENT=development
 LOG_LEVEL=info
 
-# Database
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=invitation_db
 
-# Redis
 REDIS_HOST=localhost
 REDIS_PORT=6379
 ```
 
-See `.env.example` for all available options.
+Untuk frontend, gunakan `VITE_API_BASE_URL` jika perlu mengarah ke API tertentu. Untuk admin, tersedia juga `VITE_PUBLIC_SITE_URL` agar link "lihat undangan" mengarah ke frontend publik.
 
-## Logging
+## API Endpoint
 
-The application uses Go's standard `log` package with structured logging:
+### Health
 
-```
-[time] [level] [message] [details]
-```
+| Method | Endpoint | Deskripsi |
+| --- | --- | --- |
+| GET | `/health` | Cek status aplikasi |
 
-Log levels are controlled by the `LOG_LEVEL` environment variable:
-- `debug` - Detailed debug information
-- `info` - General information (default)
-- `warn` - Warning messages
-- `error` - Error messages
+### Invitation
 
-## Docker Management
+| Method | Endpoint | Deskripsi |
+| --- | --- | --- |
+| POST | `/invitations` | Membuat invitation |
+| GET | `/invitations` | Mengambil semua invitation |
+| GET | `/invite/:slug` | Mengambil invitation publik berdasarkan slug dan mencatat visitor |
+| PUT | `/invitations/:id` | Mengubah invitation |
+| DELETE | `/invitations/:id` | Menghapus invitation |
+| POST | `/uploads/image` | Upload gambar invitation |
 
-### View container logs
+### RSVP
 
-```bash
-docker-compose logs -f app
-```
+| Method | Endpoint | Deskripsi |
+| --- | --- | --- |
+| POST | `/rsvp` | Mengirim RSVP |
+| GET | `/rsvp/:id` | Mengambil detail RSVP |
+| GET | `/rsvp/invitation/:id` | Mengambil RSVP berdasarkan invitation |
+| PUT | `/rsvp/:id` | Mengubah RSVP |
+| DELETE | `/rsvp/:id` | Menghapus RSVP |
 
-### Stop all services
+### Statistik
 
-```bash
-docker-compose down
-```
+| Method | Endpoint | Deskripsi |
+| --- | --- | --- |
+| GET | `/stats/:id` | Statistik invitation berdasarkan ID |
+| GET | `/stats/slug/:slug` | Statistik invitation berdasarkan slug |
 
-### Remove volumes (clean reset)
+## Contoh Request
 
-```bash
-docker-compose down -v
-```
-
-### Rebuild after code changes
-
-```bash
-docker-compose up -d --build
-```
-
-## Testing the Application
-
-### Test the health endpoint
+Membuat invitation:
 
 ```bash
-curl -i http://localhost:8080/health
-```
-
-### Create test data
-
-```bash
-# Create invitation
-INVITATION_ID=$(curl -s -X POST http://localhost:8080/invitations \
+curl -X POST http://localhost:8080/invitations \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Test Event",
-    "slug": "test-event-2024",
-    "event_date": "2024-12-25T20:00:00Z"
-  }' | jq -r '.id')
+    "title": "Wedding Reception",
+    "slug": "wedding-reception",
+    "image_url_1": "/uploads/example-1.jpg",
+    "image_url_2": "",
+    "image_url_3": "",
+    "event_date": "2026-06-15T18:00:00Z"
+  }'
+```
 
-# Submit RSVP
+Mengambil invitation publik:
+
+```bash
+curl http://localhost:8080/invite/wedding-reception
+```
+
+Mengirim RSVP:
+
+```bash
 curl -X POST http://localhost:8080/rsvp \
   -H "Content-Type: application/json" \
-  -d "{
-    \"invitation_id\": $INVITATION_ID,
-    \"name\": \"Test Guest\",
-    \"status\": \"attending\"
-  }"
-
-# Get statistics
-curl http://localhost:8080/stats/$INVITATION_ID
+  -d '{
+    "invitation_id": 1,
+    "name": "Guest Name",
+    "status": "attending"
+  }'
 ```
 
-## Performance Benchmarks
-
-- Single invitation lookup: < 1ms (from cache)
-- Database query: < 5ms (with connection pooling)
-- RSVP creation: < 10ms (with cache invalidation)
-- Concurrent requests: Handles 1000+ req/s
-
-## Troubleshooting
-
-### Container won't start
+Upload gambar:
 
 ```bash
-# Check logs
-docker-compose logs app
-
-# Verify all services are healthy
-docker-compose ps
+curl -X POST http://localhost:8080/uploads/image \
+  -F "image=@./photo.jpg"
 ```
 
-### Database connection error
+## Perintah Development
+
+Backend:
 
 ```bash
-# Verify PostgreSQL is running
-docker-compose logs postgres
-
-# Check database credentials in .env
-```
-
-### Cache not working
-
-```bash
-# Verify Redis is running
-docker-compose logs redis
-
-# Check Redis connectivity
-redis-cli ping
-```
-
-## Development
-
-### Running locally without Docker
-
-1. Start PostgreSQL: `psql` or your preferred PostgreSQL client
-2. Start Redis: `redis-server`
-3. Copy `.env.local` to `.env` or configure environment
-4. Run: `go run main.go`
-
-### Code style
-
-```bash
-# Format code
 go fmt ./...
-
-# Run linter
-golangci-lint run
-
-# Run tests
 go test ./...
+go run main.go
 ```
 
-## Contributing
+Frontend:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+```bash
+npm run dev
+npm run build
+```
 
-## License
+Docker:
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+```bash
+docker compose logs -f app
+docker compose down
+docker compose down -v
+```
 
-## Support
+## Catatan Keamanan
 
-For issues, questions, or suggestions, please create an issue in the repository.
+Project ini belum menyertakan authentication/authorization untuk endpoint admin/API. Jika akan dipakai untuk production atau repo publik, pertimbangkan untuk menambahkan login admin, pembatasan CORS, validasi input yang lebih ketat, rate limiting, dan konfigurasi environment yang aman.
 
-## Changelog
+Pastikan file `.env`, file lokal sensitif, dan isi folder upload pribadi tidak ikut ter-commit.
 
-### v1.0.0 (Initial Release)
-- Complete invitation management system
-- RSVP functionality
-- Visitor tracking
-- Redis caching with 60s TTL
-- Connection pooling for database
-- Clean architecture implementation
-- Docker & docker-compose setup
-- Comprehensive error handling and logging
+## Lisensi
+
+Project ini menggunakan lisensi GPL-3.0. Lihat file [LICENSE](LICENSE) untuk detail.
